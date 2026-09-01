@@ -19,6 +19,7 @@ CREATE TABLE emprestimo (
     usuario_id INT NOT NULL,
     livro_id INT NOT NULL,
     data_emprestimo DATE NOT NULL,
+    data_prevista_devolucao DATE NOT NULL,
     data_devolucao DATE,
     status VARCHAR(20) NOT NULL,
     CONSTRAINT fk_emprestimo_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id),
