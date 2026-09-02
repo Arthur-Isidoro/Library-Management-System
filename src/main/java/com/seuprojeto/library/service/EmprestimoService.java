@@ -1,6 +1,9 @@
 package com.seuprojeto.library.service;
 
 import com.seuprojeto.library.dao.EmprestimoDAO;
+import com.seuprojeto.library.enums.StatusEmprestimo;
+import com.seuprojeto.library.exception.EmprestimoJaDevolvidoException;
+import com.seuprojeto.library.exception.EmprestimoNaoEncontradoException;
 import com.seuprojeto.library.exception.LivroIndisponivelException;
 import com.seuprojeto.library.model.Emprestimo;
 import com.seuprojeto.library.model.Livro;
@@ -34,5 +37,23 @@ public class EmprestimoService {
 
         emprestimoDAO.inserir(emprestimo);
         return emprestimo;
+    }
+
+    public void devolver(int emprestimoId) {
+        Emprestimo emprestimo = emprestimoDAO.buscarPorId(emprestimoId);
+
+        if (emprestimo == null) {
+            throw new EmprestimoNaoEncontradoException(
+                    "Nenhum empréstimo encontrado com id " + emprestimoId
+            );
+        }
+
+        if (emprestimo.getStatus() == StatusEmprestimo.DEVOLVIDO) {
+            throw new EmprestimoJaDevolvidoException(
+                    "O empréstimo id " + emprestimoId + " já foi devolvido em " + emprestimo.getDataDevolucao()
+            );
+        }
+
+        emprestimoDAO.registrarDevolucao(emprestimoId);
     }
 }

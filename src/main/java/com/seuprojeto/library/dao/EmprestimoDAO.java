@@ -39,6 +39,33 @@ public class EmprestimoDAO {
         }
     }
 
+    public Emprestimo buscarPorId(int emprestimoId) {
+        String sql = "SELECT " +
+                "e.id AS emprestimo_id, e.data_emprestimo, e.data_prevista_devolucao, e.data_devolucao, e.status, " +
+                "u.id AS usuario_id, u.nome AS usuario_nome, u.email AS usuario_email, " +
+                "l.id AS livro_id, l.titulo AS livro_titulo, l.autor AS livro_autor, l.ano AS livro_ano " +
+                "FROM emprestimo e " +
+                "JOIN usuario u ON e.usuario_id = u.id " +
+                "JOIN livro l ON e.livro_id = l.id " +
+                "WHERE e.id = ?";
+
+        try (Connection conn = ConexaoBD.conectar();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, emprestimoId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapearEmprestimoComJoin(rs);
+                }
+                return null;
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao buscar empréstimo: " + e.getMessage(), e);
+        }
+    }
+
     public List<Emprestimo> listarAtivos() {
         List<Emprestimo> emprestimos = new ArrayList<>();
 
@@ -82,6 +109,24 @@ public class EmprestimoDAO {
         }
     }
 
+    public boolean livroEstaEmprestado(int livroId) {
+        String sql = "SELECT COUNT(*) FROM emprestimo WHERE livro_id = ? AND status = 'ATIVO'";
+
+        try (Connection conn = ConexaoBD.conectar();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, livroId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                rs.next();
+                return rs.getInt(1) > 0;
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao verificar disponibilidade do livro: " + e.getMessage(), e);
+        }
+    }
+
     private Emprestimo mapearEmprestimoComJoin(ResultSet rs) throws SQLException {
         Usuario usuario = new Usuario(rs.getString("usuario_nome"), rs.getString("usuario_email"));
         usuario.setId(rs.getInt("usuario_id"));
@@ -105,22 +150,4 @@ public class EmprestimoDAO {
 
         return emprestimo;
     }
-    
-    public boolean livroEstaEmprestado(int livroId) {
-    String sql = "SELECT COUNT(*) FROM emprestimo WHERE livro_id = ? AND status = 'ATIVO'";
-
-    try (Connection conn = ConexaoBD.conectar();
-         PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-        stmt.setInt(1, livroId);
-
-        try (ResultSet rs = stmt.executeQuery()) {
-            rs.next();
-            return rs.getInt(1) > 0;
-        }
-
-    } catch (SQLException e) {
-        throw new RuntimeException("Erro ao verificar disponibilidade do livro: " + e.getMessage(), e);
-    }
-}
 }
