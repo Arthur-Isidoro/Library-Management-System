@@ -32,57 +32,49 @@ public class Emprestimo {
     public int getId() {
         return id;
     }
-
     public void setId(int id) {
         this.id = id;
     }
-
     public Usuario getUsuario() {
         return usuario;
     }
-
     public void setUsuario(Usuario usuario) {
         this.usuario = usuario;
     }
-
     public Livro getLivro() {
         return livro;
     }
-
     public void setLivro(Livro livro) {
         this.livro = livro;
     }
-
     public LocalDate getDataEmprestimo() {
         return dataEmprestimo;
     }
-
     public void setDataEmprestimo(LocalDate dataEmprestimo) {
         this.dataEmprestimo = dataEmprestimo;
     }
-
     public LocalDate getDataPrevistaDevolucao() {
         return dataPrevistaDevolucao;
     }
-
     public void setDataPrevistaDevolucao(LocalDate dataPrevistaDevolucao) {
         this.dataPrevistaDevolucao = dataPrevistaDevolucao;
     }
-
     public LocalDate getDataDevolucao() {
         return dataDevolucao;
     }
-
     public void setDataDevolucao(LocalDate dataDevolucao) {
         this.dataDevolucao = dataDevolucao;
     }
-
     public StatusEmprestimo getStatus() {
         return status;
     }
-
     public void setStatus(StatusEmprestimo status) {
         this.status = status;
+    }
+
+    public boolean estaAtrasado() {
+        return status == StatusEmprestimo.ATIVO
+                && LocalDate.now().isAfter(dataPrevistaDevolucao);
     }
 
     @Override
