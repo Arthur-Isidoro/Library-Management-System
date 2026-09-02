@@ -3,12 +3,12 @@ package com.seuprojeto.library;
 import com.seuprojeto.library.dao.EmprestimoDAO;
 import com.seuprojeto.library.dao.LivroDAO;
 import com.seuprojeto.library.dao.UsuarioDAO;
-import com.seuprojeto.library.enums.StatusEmprestimo;
+import com.seuprojeto.library.exception.LivroIndisponivelException;
 import com.seuprojeto.library.model.Emprestimo;
 import com.seuprojeto.library.model.Livro;
 import com.seuprojeto.library.model.Usuario;
+import com.seuprojeto.library.service.EmprestimoService;
 
-import java.time.LocalDate;
 import java.util.List;
 
 public class Main {
@@ -17,70 +17,43 @@ public class Main {
         UsuarioDAO usuarioDAO = new UsuarioDAO();
         LivroDAO livroDAO = new LivroDAO();
         EmprestimoDAO emprestimoDAO = new EmprestimoDAO();
+        EmprestimoService emprestimoService = new EmprestimoService(emprestimoDAO);
 
-        System.out.println("=== PASSO 1: Criando e inserindo Usuário e Livro ===");
-        
-        Usuario novoUsuario = new Usuario();
-        novoUsuario.setNome("Art");
-        novoUsuario.setEmail("art@email.com");
-        
-        usuarioDAO.inserir(novoUsuario); 
-        System.out.println("Usuário criado com ID: " + novoUsuario.getId());
+        // 1. Cadastrar um usuário e um livro
+        Usuario usuario = new Usuario("Arthur Isidoro", "arthur@email.com");
+        usuarioDAO.inserir(usuario);
+        System.out.println("Usuário inserido: " + usuario);
 
-        Livro novoLivro = new Livro();
-        novoLivro.setTitulo("Clean Code");
-        novoLivro.setAutor("Robert C. Martin");
-        novoLivro.setAno(2008);
+        Livro livro = new Livro("Effective Java", "Joshua Bloch", 2018);
+        livroDAO.inserir(livro);
+        System.out.println("Livro inserido: " + livro);
 
-        livroDAO.inserir(novoLivro);
-        System.out.println("Livro criado com ID: " + novoLivro.getId());
+        // 2. Realizar o empréstimo através do Service (não mais direto pelo DAO)
+        Emprestimo emprestimo = emprestimoService.realizarEmprestimo(usuario, livro);
+        System.out.println("Empréstimo criado: " + emprestimo);
 
-        
-        System.out.println("\n=== PASSO 2: Criando e inserindo o Empréstimo ===");
-        
-        Emprestimo emprestimo = new Emprestimo();
-        emprestimo.setUsuario(novoUsuario);
-        emprestimo.setLivro(novoLivro);
-        emprestimo.setDataEmprestimo(LocalDate.now());
-        emprestimo.setDataPrevistaDevolucao(LocalDate.now().plusDays(14)); 
-        emprestimo.setStatus(StatusEmprestimo.ATIVO);
+        // 3. Tentar emprestar o MESMO livro de novo — deve lançar LivroIndisponivelException
+        System.out.println("\nTentando emprestar o mesmo livro novamente...");
+        try {
+            emprestimoService.realizarEmprestimo(usuario, livro);
+        } catch (LivroIndisponivelException e) {
+            System.out.println("Bloqueado como esperado: " + e.getMessage());
+        }
 
-        emprestimoDAO.inserir(emprestimo);
-        System.out.println("Empréstimo realizado com sucesso! ID do Empréstimo: " + emprestimo.getId());
-
-
-        System.out.println("\n=== PASSO 3: Validando listarAtivos() e o JOIN de Usuário/Livro ===");
-        
+        // 4. Listar ativos (deve ter só 1, mesmo após a tentativa bloqueada)
+        System.out.println("\n--- Empréstimos ativos ---");
         List<Emprestimo> ativos = emprestimoDAO.listarAtivos();
-        System.out.println("Quantidade de empréstimos ativos encontrados: " + ativos.size());
-        
         for (Emprestimo e : ativos) {
-            System.out.println("--- Dados do Empréstimo ---");
-            System.out.println("ID Empréstimo: " + e.getId());
-            System.out.println("Usuário (JOIN): " + (e.getUsuario() != null ? e.getUsuario().getNome() : "NULO"));
-            System.out.println("Livro (JOIN): " + (e.getLivro() != null ? e.getLivro().getTitulo() : "NULO"));
-            System.out.println("Status: " + e.getStatus());
+            System.out.println(e);
         }
 
-
-        System.out.println("\n=== PASSO 4: Registrando Devolução ===");
-        
+        // 5. Registrar a devolução
         emprestimoDAO.registrarDevolucao(emprestimo.getId());
-        System.out.println("Chamada de registrarDevolucao executada.");
+        System.out.println("\nDevolução registrada para o empréstimo id " + emprestimo.getId());
 
-
-        System.out.println("\n=== PASSO 5: Validando listarAtivos() após Devolução ===");
-        
-        List<Emprestimo> ativosAposDevolucao = emprestimoDAO.listarAtivos();
-        System.out.println("Quantidade de empréstimos ativos após devolução: " + ativosAposDevolucao.size());
-        
-        boolean encontrado = ativosAposDevolucao.stream()
-                .anyMatch(e -> e.getId() == emprestimo.getId());
-
-        if (!encontrado) {
-            System.out.println("SUCESSO: O empréstimo ID " + emprestimo.getId() + " não consta mais na lista de ATIVOS!");
-        } else {
-            System.out.println("ERRO: O empréstimo ainda está aparecendo como ativo.");
-        }
+        // 6. Agora o mesmo livro deveria estar disponível de novo
+        System.out.println("\nTentando emprestar o mesmo livro após devolução...");
+        Emprestimo novoEmprestimo = emprestimoService.realizarEmprestimo(usuario, livro);
+        System.out.println("Novo empréstimo criado com sucesso: " + novoEmprestimo);
     }
 }

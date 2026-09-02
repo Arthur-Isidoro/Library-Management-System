@@ -105,4 +105,22 @@ public class EmprestimoDAO {
 
         return emprestimo;
     }
+    
+    public boolean livroEstaEmprestado(int livroId) {
+    String sql = "SELECT COUNT(*) FROM emprestimo WHERE livro_id = ? AND status = 'ATIVO'";
+
+    try (Connection conn = ConexaoBD.conectar();
+         PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+        stmt.setInt(1, livroId);
+
+        try (ResultSet rs = stmt.executeQuery()) {
+            rs.next();
+            return rs.getInt(1) > 0;
+        }
+
+    } catch (SQLException e) {
+        throw new RuntimeException("Erro ao verificar disponibilidade do livro: " + e.getMessage(), e);
+    }
+}
 }
