@@ -104,4 +104,24 @@ public class UsuarioDAO {
         usuario.setId(rs.getInt("id"));
         return usuario;
     }
+
+    public Usuario buscarPorEmail(String email) {
+        String sql = "SELECT * FROM usuario WHERE email = ?";
+
+        try (Connection conn = ConexaoBD.conectar();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, email);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapearUsuario(rs);
+                }
+                return null;
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao buscar usuário por email: " + e.getMessage(), e);
+        }
+    }
 }

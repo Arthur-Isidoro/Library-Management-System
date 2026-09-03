@@ -9,6 +9,8 @@ import com.seuprojeto.library.model.Emprestimo;
 import com.seuprojeto.library.model.Livro;
 import com.seuprojeto.library.model.Usuario;
 import com.seuprojeto.library.service.EmprestimoService;
+import com.seuprojeto.library.service.LivroService;
+import com.seuprojeto.library.service.UsuarioService;
 
 public class Main {
 
@@ -16,15 +18,18 @@ public class Main {
         UsuarioDAO usuarioDAO = new UsuarioDAO();
         LivroDAO livroDAO = new LivroDAO();
         EmprestimoDAO emprestimoDAO = new EmprestimoDAO();
+
+        UsuarioService usuarioService = new UsuarioService(usuarioDAO);
+        LivroService livroService = new LivroService(livroDAO);
         EmprestimoService emprestimoService = new EmprestimoService(emprestimoDAO);
 
         Usuario usuario = new Usuario("Arthur Isidoro", "arthur@email.com");
-        usuarioDAO.inserir(usuario);
-        System.out.println("Usuário inserido: " + usuario);
+        usuarioService.cadastrar(usuario);
+        System.out.println("Usuário cadastrado: " + usuario);
 
         Livro livro = new Livro("Effective Java", "Joshua Bloch", 2018);
-        livroDAO.inserir(livro);
-        System.out.println("Livro inserido: " + livro);
+        livroService.cadastrar(livro);
+        System.out.println("Livro cadastrado: " + livro);
 
         Emprestimo emprestimo = emprestimoService.realizarEmprestimo(usuario, livro);
         System.out.println("Empréstimo criado: " + emprestimo);
