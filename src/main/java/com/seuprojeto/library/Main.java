@@ -3,8 +3,6 @@ package com.seuprojeto.library;
 import com.seuprojeto.library.dao.EmprestimoDAO;
 import com.seuprojeto.library.dao.LivroDAO;
 import com.seuprojeto.library.dao.UsuarioDAO;
-import com.seuprojeto.library.exception.EmprestimoJaDevolvidoException;
-import com.seuprojeto.library.exception.LivroIndisponivelException;
 import com.seuprojeto.library.model.Emprestimo;
 import com.seuprojeto.library.model.Livro;
 import com.seuprojeto.library.model.Usuario;
@@ -12,59 +10,175 @@ import com.seuprojeto.library.service.EmprestimoService;
 import com.seuprojeto.library.service.LivroService;
 import com.seuprojeto.library.service.UsuarioService;
 
+import java.util.List;
+import java.util.Scanner;
+
 public class Main {
 
+    private static final Scanner scanner = new Scanner(System.in);
+
+    private static final UsuarioDAO usuarioDAO = new UsuarioDAO();
+    private static final LivroDAO livroDAO = new LivroDAO();
+    private static final EmprestimoDAO emprestimoDAO = new EmprestimoDAO();
+
+    private static final UsuarioService usuarioService = new UsuarioService(usuarioDAO);
+    private static final LivroService livroService = new LivroService(livroDAO);
+    private static final EmprestimoService emprestimoService = new EmprestimoService(emprestimoDAO);
+
     public static void main(String[] args) {
-        UsuarioDAO usuarioDAO = new UsuarioDAO();
-        LivroDAO livroDAO = new LivroDAO();
-        EmprestimoDAO emprestimoDAO = new EmprestimoDAO();
+        boolean continuar = true;
 
-        UsuarioService usuarioService = new UsuarioService(usuarioDAO);
-        LivroService livroService = new LivroService(livroDAO);
-        EmprestimoService emprestimoService = new EmprestimoService(emprestimoDAO);
+        while (continuar) {
+            exibirMenu();
+            int opcao = lerOpcao();
 
-        Usuario usuario = new Usuario("Arthur Isidoro", "arthur@email.com");
-        usuarioService.cadastrar(usuario);
-        System.out.println("Usuário cadastrado: " + usuario);
+            switch (opcao) {
+                case 1 -> cadastrarUsuario();
+                case 2 -> listarUsuarios();
+                case 3 -> cadastrarLivro();
+                case 4 -> listarLivros();
+                case 5 -> realizarEmprestimo();
+                case 6 -> devolverLivro();
+                case 7 -> listarEmprestimosAtivos();
+                case 0 -> {
+                    System.out.println("Encerrando o sistema. Até logo!");
+                    continuar = false;
+                }
+                default -> System.out.println("Opção inválida. Tente novamente.");
+            }
 
-        Livro livro = new Livro("Effective Java", "Joshua Bloch", 2018);
-        livroService.cadastrar(livro);
-        System.out.println("Livro cadastrado: " + livro);
-
-        Emprestimo emprestimo = emprestimoService.realizarEmprestimo(usuario, livro);
-        System.out.println("Empréstimo criado: " + emprestimo);
-
-        System.out.println("\nTentando emprestar o mesmo livro novamente...");
-        try {
-            emprestimoService.realizarEmprestimo(usuario, livro);
-        } catch (LivroIndisponivelException e) {
-            System.out.println("Bloqueado como esperado: " + e.getMessage());
+            System.out.println();
         }
 
-        System.out.println("\n--- Empréstimos ativos ---");
-        for (Emprestimo e : emprestimoDAO.listarAtivos()) {
-            System.out.println(e);
-        }
+        scanner.close();
+    }
 
-        emprestimoService.devolver(emprestimo.getId());
-        System.out.println("\nDevolução registrada para o empréstimo id " + emprestimo.getId());
+    private static void exibirMenu() {
+        System.out.println("=== SISTEMA DE BIBLIOTECA ===");
+        System.out.println("1 - Cadastrar usuário");
+        System.out.println("2 - Listar usuários");
+        System.out.println("3 - Cadastrar livro");
+        System.out.println("4 - Listar livros");
+        System.out.println("5 - Realizar empréstimo");
+        System.out.println("6 - Devolver livro");
+        System.out.println("7 - Listar empréstimos ativos");
+        System.out.println("0 - Sair");
+        System.out.print("Escolha uma opção: ");
+    }
 
-        System.out.println("\nTentando devolver o mesmo empréstimo de novo...");
+    private static int lerOpcao() {
+        String entrada = scanner.nextLine();
         try {
-            emprestimoService.devolver(emprestimo.getId());
-        } catch (EmprestimoJaDevolvidoException e) {
-            System.out.println("Bloqueado como esperado: " + e.getMessage());
+            return Integer.parseInt(entrada.trim());
+        } catch (NumberFormatException e) {
+            return -1;
         }
+    }
 
-        System.out.println("\nTentando emprestar o mesmo livro após devolução...");
-        Emprestimo novoEmprestimo = emprestimoService.realizarEmprestimo(usuario, livro);
-        System.out.println("Novo empréstimo criado com sucesso: " + novoEmprestimo);
+    private static int lerInt(String mensagem) {
+        System.out.print(mensagem);
+        return Integer.parseInt(scanner.nextLine().trim());
+    }
 
-        System.out.println("\nTentando devolver um empréstimo com id inexistente (99999)...");
+    private static void cadastrarUsuario() {
+        System.out.print("Nome: ");
+        String nome = scanner.nextLine();
+        System.out.print("Email: ");
+        String email = scanner.nextLine();
+
         try {
-            emprestimoService.devolver(99999);
+            Usuario usuario = new Usuario(nome, email);
+            usuarioService.cadastrar(usuario);
+            System.out.println("Usuário cadastrado com sucesso: " + usuario);
         } catch (RuntimeException e) {
-            System.out.println("Bloqueado como esperado: " + e.getMessage());
+            System.out.println("Erro ao cadastrar usuário: " + e.getMessage());
+        }
+    }
+
+    private static void listarUsuarios() {
+        List<Usuario> usuarios = usuarioDAO.listarTodos();
+        if (usuarios.isEmpty()) {
+            System.out.println("Nenhum usuário cadastrado.");
+            return;
+        }
+        usuarios.forEach(System.out::println);
+    }
+
+    private static void cadastrarLivro() {
+        System.out.print("Título: ");
+        String titulo = scanner.nextLine();
+        System.out.print("Autor: ");
+        String autor = scanner.nextLine();
+
+        try {
+            int ano = lerInt("Ano: ");
+            Livro livro = new Livro(titulo, autor, ano);
+            livroService.cadastrar(livro);
+            System.out.println("Livro cadastrado com sucesso: " + livro);
+        } catch (NumberFormatException e) {
+            System.out.println("Ano inválido — digite apenas números.");
+        } catch (RuntimeException e) {
+            System.out.println("Erro ao cadastrar livro: " + e.getMessage());
+        }
+    }
+
+    private static void listarLivros() {
+        List<Livro> livros = livroDAO.listarLivros();
+        if (livros.isEmpty()) {
+            System.out.println("Nenhum livro cadastrado.");
+            return;
+        }
+        livros.forEach(System.out::println);
+    }
+
+    private static void realizarEmprestimo() {
+        try {
+            int usuarioId = lerInt("ID do usuário: ");
+            int livroId = lerInt("ID do livro: ");
+
+            Usuario usuario = usuarioDAO.buscarPorId(usuarioId);
+            if (usuario == null) {
+                System.out.println("Nenhum usuário encontrado com id " + usuarioId);
+                return;
+            }
+
+            Livro livro = livroDAO.buscarPorId(livroId);
+            if (livro == null) {
+                System.out.println("Nenhum livro encontrado com id " + livroId);
+                return;
+            }
+
+            Emprestimo emprestimo = emprestimoService.realizarEmprestimo(usuario, livro);
+            System.out.println("Empréstimo realizado com sucesso: " + emprestimo);
+
+        } catch (NumberFormatException e) {
+            System.out.println("ID inválido — digite apenas números.");
+        } catch (RuntimeException e) {
+            System.out.println("Erro ao realizar empréstimo: " + e.getMessage());
+        }
+    }
+
+    private static void devolverLivro() {
+        try {
+            int emprestimoId = lerInt("ID do empréstimo: ");
+            emprestimoService.devolver(emprestimoId);
+            System.out.println("Devolução registrada com sucesso.");
+        } catch (NumberFormatException e) {
+            System.out.println("ID inválido — digite apenas números.");
+        } catch (RuntimeException e) {
+            System.out.println("Erro ao registrar devolução: " + e.getMessage());
+        }
+    }
+
+    private static void listarEmprestimosAtivos() {
+        List<Emprestimo> ativos = emprestimoDAO.listarAtivos();
+        if (ativos.isEmpty()) {
+            System.out.println("Nenhum empréstimo ativo no momento.");
+            return;
+        }
+        for (Emprestimo e : ativos) {
+            String atraso = e.estaAtrasado() ? " [ATRASADO]" : "";
+            System.out.println(e + atraso);
         }
     }
 }
